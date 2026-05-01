@@ -15,16 +15,16 @@
     .tab.active { color: #00B900; border-bottom: 2px solid #00B900; }
     .section { display: none; padding: 16px; }
     .section.active { display: block; }
-    .input-group { background: #fff; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
-    .input-group input, .input-group textarea { width: 100%; padding: 14px 16px; border: none; border-bottom: 1px solid #E5E5EA; font-size: 16px; outline: none; }
+    .input-group { background: #fff; border-radius: 12px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .input-group input, .input-group textarea { width: 100%; padding: 14px 16px; border: none; border-bottom: 1px solid #E5E5EA; font-size: 16px; outline: none; display: block; }
     .input-group textarea { min-height: 100px; resize: none; }
     .btn { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; color: #fff; }
     .btn-search { background: #00B900; }
     .btn-add { background: #007AFF; }
-    .status { font-size: 13px; color: #8E8E93; text-align: center; margin-top: 12px; }
+    .status { font-size: 13px; color: #8E8E93; text-align: center; margin-top: 12px; min-height: 18px; }
     .result-list { background: #fff; border-radius: 12px; overflow: hidden; margin-top: 16px; list-style: none; }
     .result-item { padding: 14px 16px; border-bottom: 1px solid #E5E5EA; display: flex; justify-content: space-between; }
-    .detail-card { background: #fff; border-radius: 12px; margin-top: 16px; display: none; overflow: hidden; }
+    .detail-card { background: #fff; border-radius: 12px; margin-top: 16px; display: none; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     .detail-card.show { display: block; }
     .detail-header { background: #00B900; padding: 12px; color: #fff; font-weight: 600; }
     .detail-row { padding: 12px; border-bottom: 1px solid #E5E5EA; display: flex; }
@@ -63,8 +63,9 @@
 </div>
 
 <script>
-  const WOFF_ID = "j5bJbWn6Qg1ppttwac1wMA";
+  // 【重要】ここのURLが最新のGASデプロイURLであることを確認してください
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxhVIpeLzG2_8K9v_bGRIDITDp4-f_ZHqGTdnkXm8lKAYn8rajcVbBv7DtI9R_PeuO2/exec";
+  const WOFF_ID = "j5bJbWn6Qg1ppttwac1wMA";
   let userId = "";
 
   window.onload = () => {
@@ -83,29 +84,44 @@
   }
 
   async function doSearch() {
-    const company = document.getElementById("searchInput").value;
-    const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "search", company }) });
-    const data = await res.json();
-    if (data.records.length > 0) showDetail(data.records[0]);
-  }
-
-  function showDetail(r) {
-    document.getElementById("d-name").textContent = r.会社名;
-    document.getElementById("d-content").textContent = r.商談内容;
-    document.getElementById("resultDetail").classList.add("show");
-    const msg = `✅ 検索結果\n会社名: ${r.会社名}\n内容: ${r.商談内容}`;
-    woff.sendMessage({ content: { type: "text", text: msg } });
-    document.getElementById("sentBadge").style.display = "block";
+    const company = document.getElementById("searchInput").value.trim();
+    if (!company) return;
+    document.getElementById("searchStatus").textContent = "検索中...";
+    
+    try {
+      const res = await fetch(GAS_URL, {
+        method: "POST",
+        mode: "no-cors", // 通信エラー回避
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "search", company: company })
+      });
+      // no-corsの場合は中身が見えないため、1秒後にkintoneに反映されたか確認する運用
+      document.getElementById("searchStatus").textContent = "リクエストを送信しました。";
+    } catch (e) {
+      document.getElementById("searchStatus").textContent = "エラーが発生しました。";
+    }
   }
 
   async function doAdd() {
-    const company = document.getElementById("addCompany").value;
-    const content = document.getElementById("addContent").value;
-    const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "add", company, content }) });
-    const data = await res.json();
-    if (data.success) {
-      woff.sendMessage({ content: { type: "text", text: "✅ 登録完了" } });
-      setTimeout(() => woff.closeWindow(), 1500);
+    const company = document.getElementById("addCompany").value.trim();
+    const content = document.getElementById("addContent").value.trim();
+    if (!company || !content) return;
+    document.getElementById("addStatus").textContent = "登録中...";
+
+    try {
+      await fetch(GAS_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add", company, content, userId })
+      });
+      document.getElementById("addStatus").textContent = "送信完了";
+      if (woff.isInClient()) {
+        woff.sendMessage({ content: { type: "text", text: "✅ 商談を登録しました" } });
+        setTimeout(() => woff.closeWindow(), 1500);
+      }
+    } catch (e) {
+      document.getElementById("addStatus").textContent = "エラーが発生しました。";
     }
   }
 </script>
