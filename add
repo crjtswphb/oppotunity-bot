@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>商談Bot - 入力</title>
+  <script src="https://static.worksmobile.net/static/wm/woff/edge/3.4/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: -apple-system, 'BlinkMacSystemFont', 'Helvetica Neue', sans-serif;
+      background: #F2F2F7;
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
+    }
+    .header {
+      background: #fff;
+      padding: 16px 20px;
+      padding-top: max(16px, env(safe-area-inset-top)); 
+      border-bottom: 1px solid #E5E5EA;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header h1 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #000;
+      text-align: center;
+    }
+    .section {
+      padding: 16px;
+      padding-bottom: 40px;
+    }
+    .input-group {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .input-group input, .input-group textarea {
+      width: 100%;
+      padding: 14px 16px;
+      border: none;
+      border-bottom: 1px solid #E5E5EA;
+      font-size: 16px; 
+      outline: none;
+      background: transparent;
+      -webkit-appearance: none;
+      display: block;
+    }
+    .input-group input:last-child, .input-group textarea:last-child {
+      border-bottom: none;
+    }
+    .input-group textarea {
+      resize: none;
+      min-height: 120px;
+    }
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      background: #007AFF; /* 入力は青色に */
+    }
+    .btn:active { opacity: 0.7; }
+    .status {
+      font-size: 13px;
+      color: #8E8E93;
+      text-align: center;
+      margin-top: 12px;
+      min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>✏️ 新規商談を登録</h1>
+</div>
+
+<div class="section">
+  <div class="input-group">
+    <input type="text" id="addCompany" placeholder="会社名">
+    <textarea id="addContent" placeholder="商談内容"></textarea>
+  </div>
+  <button class="btn btn-add" onclick="doAdd()">登録する</button>
+  <p class="status" id="addStatus"></p>
+</div>
+
+<script>
+  // 【重要】ここのWOFF IDは「入力用」のものを設定してください
+  const WOFF_ID = "YOUR_ADD_WOFF_ID"; 
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxhVIpeLzG2_8K9v_bGRIDITDp4-f_ZHqGTdnkXm8lKAYn8rajcVbBv7DtI9R_PeuO2/exec";
+  let userId = "";
+
+  window.onload = () => {
+    woff.init({ woffId: WOFF_ID }).then(() => woff.getProfile()).then(profile => {
+      userId = profile.userId;
+    }).catch(console.error);
+  };
+
+  async function doAdd() {
+    const company = document.getElementById("addCompany").value.trim();
+    const content = document.getElementById("addContent").value.trim();
+    if (!company || !content) { document.getElementById("addStatus").textContent = "会社名と商談内容を入力してください"; return; }
+
+    document.getElementById("addStatus").textContent = "登録中…";
+    const btn = document.querySelector(".btn-add");
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(GAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "add", company: company, content: content, userId: userId })
+      });
+      const data = await res.json();
+      
+      document.getElementById("addStatus").textContent = data.message || "処理が完了しました";
+
+      if (data.success) {
+        document.getElementById("addCompany").value = "";
+        document.getElementById("addContent").value = "";
+        
+        const msg = `✅ 登録完了\n会社名: ${company}\n商談内容: ${content}`;
+        if (woff.isInClient()) woff.sendMessage({ content: { type: "text", text: msg } });
+        
+        // 1.5秒後に自動で画面を閉じる
+        setTimeout(() => { if (woff.isInClient()) woff.closeWindow(); }, 1500);
+      }
+    } catch(e) {
+      document.getElementById("addStatus").textContent = "通信エラーが発生しました";
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
