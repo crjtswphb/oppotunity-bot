@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>商談Bot - 参照</title>
+  <script src="https://static.worksmobile.net/static/wm/woff/edge/3.4/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: -apple-system, 'BlinkMacSystemFont', 'Helvetica Neue', sans-serif;
+      background: #F2F2F7;
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
+    }
+    .header {
+      background: #fff;
+      padding: 16px 20px;
+      padding-top: max(16px, env(safe-area-inset-top)); 
+      border-bottom: 1px solid #E5E5EA;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header h1 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #000;
+      text-align: center;
+    }
+    .section {
+      padding: 16px;
+      padding-bottom: 40px;
+    }
+    .input-group {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .input-group input {
+      width: 100%;
+      padding: 14px 16px;
+      border: none;
+      font-size: 16px; 
+      outline: none;
+      background: transparent;
+      -webkit-appearance: none;
+    }
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      background: #00B900;
+    }
+    .btn:active { opacity: 0.7; }
+    .status {
+      font-size: 13px;
+      color: #8E8E93;
+      text-align: center;
+      margin-top: 12px;
+      min-height: 18px;
+    }
+    .result-list {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 16px;
+      list-style: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .result-item {
+      padding: 14px 16px;
+      border-bottom: 1px solid #E5E5EA;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-item .name { font-size: 15px; font-weight: 600; color: #333; }
+    .result-item .date { font-size: 12px; color: #8E8E93; margin-top: 4px; }
+    .result-item .chevron { color: #C7C7CC; font-size: 18px; }
+    .detail-card {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 16px;
+      display: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .detail-card.show { display: block; }
+    .detail-card .detail-header {
+      background: #00B900; padding: 14px 16px; color: #fff; font-size: 15px; font-weight: 600;
+    }
+    .detail-row {
+      padding: 14px 16px; border-bottom: 1px solid #E5E5EA; display: flex; gap: 12px;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-size: 13px; color: #8E8E93; min-width: 72px; }
+    .detail-value { font-size: 14px; color: #333; flex: 1; line-height: 1.5; white-space: pre-wrap; }
+    .sent-badge {
+      background: #E8F8E8; color: #00B900; font-size: 14px; font-weight: 600; text-align: center;
+      padding: 12px; border-radius: 8px; margin-top: 16px; display: none;
+    }
+    .sent-badge.show { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔍 過去の商談を検索</h1>
+</div>
+
+<div class="section">
+  <div class="input-group">
+    <input type="text" id="searchInput" placeholder="会社名を入力" oninput="clearResults()">
+  </div>
+  <button class="btn" onclick="doSearch()">検索する</button>
+  <p class="status" id="searchStatus"></p>
+  
+  <ul class="result-list" id="resultList"></ul>
+  
+  <div class="detail-card" id="resultDetail">
+    <div class="detail-header">詳細情報</div>
+    <div class="detail-row"><span class="detail-label">会社名</span><span class="detail-value" id="d-name"></span></div>
+    <div class="detail-row"><span class="detail-label">商談内容</span><span class="detail-value" id="d-content"></span></div>
+    <div class="detail-row"><span class="detail-label">日付</span><span class="detail-value" id="d-date"></span></div>
+  </div>
+  <div class="sent-badge" id="sentBadge">✅ チャットに送信しました</div>
+</div>
+
+<script>
+  // 【重要】ここのWOFF IDは「参照用」のものを設定してください
+  const WOFF_ID = "YOUR_SEARCH_WOFF_ID"; 
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxhVIpeLzG2_8K9v_bGRIDITDp4-f_ZHqGTdnkXm8lKAYn8rajcVbBv7DtI9R_PeuO2/exec";
+  let userId = "";
+
+  window.onload = () => {
+    woff.init({ woffId: WOFF_ID }).then(() => woff.getProfile()).then(profile => {
+      userId = profile.userId;
+    }).catch(console.error);
+  };
+
+  async function doSearch() {
+    const company = document.getElementById("searchInput").value.trim();
+    if (!company) { setStatus("searchStatus", "会社名を入力してください"); return; }
+    setStatus("searchStatus", "検索中…");
+    clearResults();
+
+    try {
+      const res = await fetch(GAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "search", company: company, userId: userId })
+      });
+      const data = await res.json();
+
+      if (data.error) { setStatus("searchStatus", `エラー: ${data.error}`); return; }
+      if (!data.records || data.records.length === 0) { setStatus("searchStatus", "該当する会社が見つかりませんでした"); return; }
+
+      if (data.records.length === 1) {
+        showDetail(data.records[0]);
+        setStatus("searchStatus", "1件見つかりました");
+      } else {
+        showList(data.records);
+        setStatus("searchStatus", `${data.records.length}件見つかりました。選んでください`);
+      }
+    } catch(e) { setStatus("searchStatus", "通信エラーが発生しました"); }
+  }
+
+  function showList(records) {
+    const list = document.getElementById("resultList");
+    list.innerHTML = "";
+    records.forEach(r => {
+      const li = document.createElement("li");
+      li.className = "result-item";
+      li.innerHTML = `<div><div class="name">${escapeHTML(r.会社名)}</div><div class="date">${escapeHTML(r.日付)}</div></div><span class="chevron">›</span>`;
+      li.onclick = () => { list.innerHTML = ""; showDetail(r); setStatus("searchStatus", ""); };
+      list.appendChild(li);
+    });
+  }
+
+  function showDetail(r) {
+    document.getElementById("d-name").textContent = r.会社名;
+    document.getElementById("d-content").textContent = r.商談内容;
+    document.getElementById("d-date").textContent = r.日付;
+    document.getElementById("resultDetail").className = "detail-card show";
+    const msg = `✅ 検索結果\n会社名: ${r.会社名}\n商談内容: ${r.商談内容}\n日付: ${r.日付}`;
+    if (woff.isInClient()) woff.sendMessage({ content: { type: "text", text: msg } });
+    document.getElementById("sentBadge").className = "sent-badge show";
+  }
+
+  function clearResults() {
+    document.getElementById("resultList").innerHTML = "";
+    document.getElementById("resultDetail").className = "detail-card";
+    document.getElementById("sentBadge").className = "sent-badge";
+  }
+
+  function setStatus(id, msg) { document.getElementById(id).textContent = msg; }
+  function escapeHTML(str) { return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)); }
+</script>
+</body>
+</html>
