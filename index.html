@@ -68,12 +68,16 @@
   const WOFF_ID = "j5bJbWn6Qg1ppttwac1wMA";
   let userId = "";
 
+  const inWoff = typeof woff !== "undefined";
+
   window.onload = () => {
-    woff.init({ woffId: WOFF_ID }).then(() => {
-      const mode = new URLSearchParams(window.location.search).get('mode');
-      if (mode === 'add') switchTab('add');
-      return woff.getProfile();
-    }).then(profile => { userId = profile.userId; }).catch(console.error);
+    const mode = new URLSearchParams(window.location.search).get('mode');
+    if (mode === 'add') switchTab('add');
+    if (!inWoff) return;
+    woff.init({ woffId: WOFF_ID })
+      .then(() => woff.getProfile())
+      .then(profile => { userId = profile.userId; })
+      .catch(console.error);
   };
 
   function switchTab(tab) {
@@ -115,7 +119,7 @@
           document.getElementById("d-name").textContent = item.name || item.company || "";
           document.getElementById("d-content").textContent = item.content || "";
           document.getElementById("resultDetail").classList.add("show");
-          if (woff.isInClient()) {
+          if (inWoff && woff.isInClient()) {
             const msg = `【${item.name || item.company}】\n${item.content || ""}`;
             woff.sendMessage({ content: { type: "text", text: msg } });
             document.getElementById("sentBadge").style.display = "block";
@@ -141,7 +145,7 @@
         body: JSON.stringify({ action: "add", company, content, userId })
       });
       document.getElementById("addStatus").textContent = "送信完了";
-      if (woff.isInClient()) {
+      if (inWoff && woff.isInClient()) {
         woff.sendMessage({ content: { type: "text", text: "✅ 商談を登録しました" } });
         setTimeout(() => woff.closeWindow(), 1500);
       }
