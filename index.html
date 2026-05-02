@@ -6,60 +6,224 @@
   <title>商談Bot</title>
   <script src="https://static.worksmobile.net/static/wm/woff/edge/3.7.1/sdk.js"></script>
   <style>
+    :root {
+      --navy-900: #0b1f3b;
+      --navy-800: #13315c;
+      --navy-700: #19457b;
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --line: #d7dfeb;
+      --text: #12243d;
+      --muted: #5d6f87;
+      --success-bg: #e7f4ec;
+      --success-text: #1d7a42;
+      --shadow: 0 8px 18px rgba(11, 31, 59, 0.08);
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { font-family: -apple-system, sans-serif; background: #F2F2F7; width: 100%; height: 100%; overflow-x: hidden; }
-    .header { background: #fff; padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top)); border-bottom: 1px solid #E5E5EA; position: sticky; top: 0; z-index: 10; }
-    .header h1 { font-size: 17px; font-weight: 600; text-align: center; }
-    .tab-bar { display: flex; background: #fff; border-bottom: 1px solid #E5E5EA; }
-    .tab { flex: 1; padding: 12px; text-align: center; font-size: 14px; color: #8E8E93; cursor: pointer; border-bottom: 2px solid transparent; }
-    .tab.active { color: #00B900; border-bottom: 2px solid #00B900; }
-    .section { display: none; padding: 16px; }
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      overflow-x: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans JP", sans-serif;
+      background: linear-gradient(180deg, #edf3fb 0%, var(--bg) 45%, #f8fafd 100%);
+      color: var(--text);
+    }
+    body { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+    .header {
+      background: linear-gradient(135deg, var(--navy-900), var(--navy-800));
+      color: #fff;
+      padding: max(16px, env(safe-area-inset-top)) 18px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 4px 14px rgba(11, 31, 59, 0.2);
+    }
+    .header h1 { font-size: 18px; font-weight: 700; text-align: center; letter-spacing: 0.03em; }
+    .header-sub { margin-top: 4px; text-align: center; font-size: 12px; color: rgba(255, 255, 255, 0.78); }
+    .container {
+      width: min(100%, 960px);
+      margin: 0 auto;
+      padding: 14px 12px 20px;
+    }
+    .tab-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 4px;
+      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+    }
+    .tab {
+      border: none;
+      appearance: none;
+      background: transparent;
+      padding: 11px 8px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    .tab.active {
+      background: var(--navy-900);
+      color: #fff;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+    .section { display: none; }
     .section.active { display: block; }
-    .input-group { background: #fff; border-radius: 12px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .input-group input, .input-group textarea { width: 100%; padding: 14px 16px; border: none; border-bottom: 1px solid #E5E5EA; font-size: 16px; outline: none; display: block; }
-    .input-group textarea { min-height: 100px; resize: none; }
-    .btn { width: 100%; padding: 15px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; color: #fff; }
-    .btn-search { background: #00B900; }
-    .btn-add { background: #007AFF; }
-    .status { font-size: 13px; color: #8E8E93; text-align: center; margin-top: 12px; min-height: 18px; }
-    .result-list { background: #fff; border-radius: 12px; overflow: hidden; margin-top: 16px; list-style: none; }
-    .result-item { padding: 14px 16px; border-bottom: 1px solid #E5E5EA; display: flex; justify-content: space-between; }
-    .detail-card { background: #fff; border-radius: 12px; margin-top: 16px; display: none; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .panel-title { font-size: 14px; color: var(--navy-800); font-weight: 700; margin-bottom: 10px; }
+    .input-group { margin-bottom: 12px; }
+    .input-group input, .input-group textarea {
+      width: 100%;
+      padding: 13px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+      background: #fff;
+      color: var(--text);
+    }
+    .input-group textarea { min-height: 120px; resize: vertical; }
+    .input-group input:focus, .input-group textarea:focus {
+      border-color: var(--navy-700);
+      box-shadow: 0 0 0 3px rgba(25, 69, 123, 0.15);
+    }
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(135deg, var(--navy-800), var(--navy-900));
+      box-shadow: 0 6px 14px rgba(11, 31, 59, 0.24);
+    }
+    .btn:active { transform: translateY(1px); }
+    .status {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 10px;
+      min-height: 18px;
+    }
+    .result-list {
+      margin-top: 12px;
+      list-style: none;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .result-item {
+      padding: 13px 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-item-arrow { color: var(--muted); font-size: 13px; }
+    .detail-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-top: 12px;
+      display: none;
+      overflow: hidden;
+      background: #fff;
+    }
     .detail-card.show { display: block; }
-    .detail-header { background: #00B900; padding: 12px; color: #fff; font-weight: 600; }
-    .detail-row { padding: 12px; border-bottom: 1px solid #E5E5EA; display: flex; }
-    .detail-label { min-width: 80px; color: #8E8E93; font-size: 13px; }
-    .sent-badge { background: #E8F8E8; color: #00B900; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; text-align: center; }
+    .detail-header {
+      background: linear-gradient(135deg, var(--navy-800), var(--navy-900));
+      color: #fff;
+      font-weight: 700;
+      padding: 11px 12px;
+      font-size: 14px;
+    }
+    .detail-row {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { min-width: 72px; color: var(--muted); font-size: 12px; }
+    .detail-value { font-size: 14px; line-height: 1.5; word-break: break-word; }
+    .sent-badge {
+      background: var(--success-bg);
+      color: var(--success-text);
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 10px;
+      display: none;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    @media (min-width: 768px) {
+      .container { padding: 20px 18px 30px; }
+      .panel { padding: 18px; }
+      .panel-title { font-size: 15px; }
+      .input-group textarea { min-height: 140px; }
+    }
   </style>
 </head>
 <body>
 
-<div class="header"><h1>📊 商談Bot</h1></div>
-<div class="tab-bar">
-  <div class="tab active" id="tab-search" onclick="switchTab('search')">🔍 参照</div>
-  <div class="tab" id="tab-add" onclick="switchTab('add')">✏️ 入力</div>
+<div class="header">
+  <h1>商談管理ダッシュボード</h1>
+  <p class="header-sub">Opportunity Bot</p>
 </div>
+<div class="container">
+  <div class="tab-bar">
+    <button class="tab active" id="tab-search" onclick="switchTab('search')">検索タブ</button>
+    <button class="tab" id="tab-add" onclick="switchTab('add')">入力タブ</button>
+  </div>
 
 <div class="section active" id="section-search">
-  <div class="input-group"><input type="text" id="searchInput" placeholder="会社名を入力"></div>
-  <button class="btn btn-search" onclick="doSearch()">検索する</button>
-  <p class="status" id="searchStatus"></p>
-  <ul class="result-list" id="resultList"></ul>
-  <div class="detail-card" id="resultDetail">
-    <div class="detail-header">詳細情報</div>
-    <div class="detail-row"><span class="detail-label">会社名</span><span id="d-name"></span></div>
-    <div class="detail-row"><span class="detail-label">内容</span><span id="d-content"></span></div>
+  <div class="panel">
+    <p class="panel-title">商談履歴を検索</p>
+    <div class="input-group"><input type="text" id="searchInput" placeholder="会社名を入力"></div>
+    <button class="btn btn-search" onclick="doSearch()">検索する</button>
+    <p class="status" id="searchStatus"></p>
+    <ul class="result-list" id="resultList"></ul>
+    <div class="detail-card" id="resultDetail">
+      <div class="detail-header">詳細情報</div>
+      <div class="detail-row"><span class="detail-label">会社名</span><span class="detail-value" id="d-name"></span></div>
+      <div class="detail-row"><span class="detail-label">内容</span><span class="detail-value" id="d-content"></span></div>
+    </div>
+    <div class="sent-badge" id="sentBadge">チャットに送信しました</div>
   </div>
-  <div class="sent-badge" id="sentBadge">✅ チャットに送信しました</div>
 </div>
 
 <div class="section" id="section-add">
-  <div class="input-group">
-    <input type="text" id="addCompany" placeholder="会社名">
-    <textarea id="addContent" placeholder="商談内容"></textarea>
+  <div class="panel">
+    <p class="panel-title">新規商談を登録</p>
+    <div class="input-group">
+      <input type="text" id="addCompany" placeholder="会社名">
+    </div>
+    <div class="input-group">
+      <textarea id="addContent" placeholder="商談内容"></textarea>
+    </div>
+    <button class="btn btn-add" onclick="doAdd()">登録する</button>
+    <p class="status" id="addStatus"></p>
   </div>
-  <button class="btn btn-add" onclick="doAdd()">登録する</button>
-  <p class="status" id="addStatus"></p>
+</div>
 </div>
 
 <script>
@@ -114,7 +278,7 @@
       results.forEach((item, i) => {
         const li = document.createElement("li");
         li.className = "result-item";
-        li.innerHTML = `<span>${item["会社名"] || "（名称なし）"}</span><span style="color:#8E8E93;font-size:13px;">▶</span>`;
+        li.innerHTML = `<span>${item["会社名"] || "（名称なし）"}</span><span class="result-item-arrow">詳細</span>`;
         li.onclick = () => {
           document.getElementById("d-name").textContent = item["会社名"] || "";
           document.getElementById("d-content").textContent = item["商談内容"] || "";
