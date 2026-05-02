@@ -87,16 +87,42 @@
     const company = document.getElementById("searchInput").value.trim();
     if (!company) return;
     document.getElementById("searchStatus").textContent = "検索中...";
-    
+    document.getElementById("resultList").innerHTML = "";
+    document.getElementById("resultDetail").classList.remove("show");
+    document.getElementById("sentBadge").style.display = "none";
+
     try {
       const res = await fetch(GAS_URL, {
         method: "POST",
-        mode: "no-cors", // 通信エラー回避
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "search", company: company })
       });
-      // no-corsの場合は中身が見えないため、1秒後にkintoneに反映されたか確認する運用
-      document.getElementById("searchStatus").textContent = "リクエストを送信しました。";
+      const data = await res.json();
+      const results = Array.isArray(data) ? data : (data.results || []);
+      const list = document.getElementById("resultList");
+
+      if (results.length === 0) {
+        document.getElementById("searchStatus").textContent = "該当する商談が見つかりませんでした。";
+        return;
+      }
+
+      document.getElementById("searchStatus").textContent = `${results.length}件見つかりました`;
+      results.forEach((item, i) => {
+        const li = document.createElement("li");
+        li.className = "result-item";
+        li.innerHTML = `<span>${item.name || item.company || "（名称なし）"}</span><span style="color:#8E8E93;font-size:13px;">▶</span>`;
+        li.onclick = () => {
+          document.getElementById("d-name").textContent = item.name || item.company || "";
+          document.getElementById("d-content").textContent = item.content || "";
+          document.getElementById("resultDetail").classList.add("show");
+          if (woff.isInClient()) {
+            const msg = `【${item.name || item.company}】\n${item.content || ""}`;
+            woff.sendMessage({ content: { type: "text", text: msg } });
+            document.getElementById("sentBadge").style.display = "block";
+          }
+        };
+        list.appendChild(li);
+      });
     } catch (e) {
       document.getElementById("searchStatus").textContent = "エラーが発生しました。";
     }
@@ -111,8 +137,7 @@
     try {
       await fetch(GAS_URL, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "add", company, content, userId })
       });
       document.getElementById("addStatus").textContent = "送信完了";
