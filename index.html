@@ -121,7 +121,7 @@
           document.getElementById("resultDetail").classList.add("show");
           if (inWoff && woff.isInClient()) {
             const msg = `【${item["会社名"]}】\n${item["商談内容"] || ""}`;
-            woff.sendMessage({ content: { type: "text", text: msg } });
+            woff.sendMessage([{ type: "text", text: msg }]);
             document.getElementById("sentBadge").style.display = "block";
           }
         };
@@ -146,7 +146,7 @@
       });
       document.getElementById("addStatus").textContent = "送信完了";
       if (inWoff && woff.isInClient()) {
-        woff.sendMessage({ content: { type: "text", text: "✅ 商談を登録しました" } });
+        woff.sendMessage([{ type: "text", text: "✅ 商談を登録しました" }]);
         setTimeout(() => woff.closeWindow(), 1500);
       }
     } catch (e) {
