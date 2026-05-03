@@ -299,15 +299,15 @@
       <div class="input-group">
         <label>排泄介助</label>
         <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="toiletAssist" value="なし" checked>なし</label>
-          <label class="radio-option"><input type="radio" name="toiletAssist" value="実施">実施</label>
+          <label class="radio-option"><input type="radio" name="toilet" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="toilet" value="実施">実施</label>
         </div>
       </div>
       <div class="input-group">
         <label>食事介助</label>
         <div class="radio-group">
-          <label class="radio-option"><input type="radio" name="mealAssist" value="なし" checked>なし</label>
-          <label class="radio-option"><input type="radio" name="mealAssist" value="実施">実施</label>
+          <label class="radio-option"><input type="radio" name="meal" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="meal" value="実施">実施</label>
         </div>
       </div>
       <div class="input-group">
@@ -318,12 +318,12 @@
         </div>
       </div>
       <div class="input-group">
-        <label for="userCondition">利用者の状態</label>
-        <textarea id="userCondition" placeholder="体調・表情・歩行状況など"></textarea>
+        <label for="addCondition">利用者の状態</label>
+        <textarea id="addCondition" placeholder="体調・様子・変化など"></textarea>
       </div>
       <div class="input-group">
-        <label for="contactNotes">連絡事項</label>
-        <textarea id="contactNotes" placeholder="ご家族・事業所への連絡事項"></textarea>
+        <label for="addNote">連絡事項</label>
+        <textarea id="addNote" placeholder="家族・事業所への連絡事項"></textarea>
       </div>
       <button type="button" class="btn" onclick="doAddRecord()">スプレッドシートに保存</button>
       <p class="status" id="addStatus"></p>
@@ -413,11 +413,11 @@
     const cleaning = (document.querySelector("input[name='cleaning']:checked") || {}).value || "なし";
     const washing = (document.querySelector("input[name='washing']:checked") || {}).value || "なし";
     const cooking = (document.querySelector("input[name='cooking']:checked") || {}).value || "なし";
-    const toiletAssist = (document.querySelector("input[name='toiletAssist']:checked") || {}).value || "なし";
-    const mealAssist = (document.querySelector("input[name='mealAssist']:checked") || {}).value || "なし";
+    const toilet = (document.querySelector("input[name='toilet']:checked") || {}).value || "なし";
+    const meal = (document.querySelector("input[name='meal']:checked") || {}).value || "なし";
     const mealAmount = (document.querySelector("input[name='mealAmount']:checked") || {}).value || "完食";
-    const userCondition = document.getElementById("userCondition").value.trim();
-    const contactNotes = document.getElementById("contactNotes").value.trim();
+    const condition = document.getElementById("addCondition").value.trim();
+    const note = document.getElementById("addNote").value.trim();
     const statusEl = document.getElementById("addStatus");
     statusEl.classList.remove("status-success");
 
@@ -440,11 +440,11 @@
       掃除: cleaning,
       洗濯: washing,
       調理: cooking,
-      排泄介助: toiletAssist,
-      食事介助: mealAssist,
+      排泄介助: toilet,
+      食事介助: meal,
       食事量: mealAmount,
-      利用者の状態: userCondition,
-      連絡事項: contactNotes,
+      利用者の状態: condition,
+      連絡事項: note,
       userId
     });
 
@@ -491,7 +491,7 @@
       const res = await fetch(GAS_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "kaigo_search", query, userId })
+        body: JSON.stringify({ action: "search", query, userId })
       });
       const data = await res.json().catch(() => ({}));
       const results = Array.isArray(data) ? data : (data.records || []);
