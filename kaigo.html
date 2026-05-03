@@ -141,6 +141,25 @@
       box-shadow: 0 6px 14px rgba(11, 31, 59, 0.24);
     }
     .btn:active { transform: translateY(1px); }
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .btn-secondary {
+      width: 100%;
+      border: 1px solid var(--navy-700);
+      border-radius: 10px;
+      padding: 13px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--navy-800);
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(11, 31, 59, 0.06);
+    }
+    .btn-secondary:active { transform: translateY(1px); }
     .status {
       font-size: 13px;
       color: var(--muted);
@@ -169,6 +188,7 @@
     .result-item:last-child { border-bottom: none; }
     .result-item-arrow { color: var(--muted); font-size: 13px; }
     .result-item-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .result-item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
     .detail-card {
       border: 1px solid var(--line);
       border-radius: 12px;
@@ -338,7 +358,15 @@
         <label for="searchQuery">利用者名（部分一致）</label>
         <input type="text" id="searchQuery" placeholder="利用者名を入力">
       </div>
-      <button type="button" class="btn" onclick="doSearchRecords()">検索する</button>
+      <button type="button" class="btn" onclick="doSearchRecords()">利用者名で検索する</button>
+      <div class="input-group" style="margin-top:10px;">
+        <label for="searchDate">サービス日</label>
+        <input type="date" id="searchDate">
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn-secondary" onclick="doSearchByDate()">日付で検索する</button>
+        <button type="button" class="btn-secondary" onclick="document.getElementById('searchDate').value='';">日付クリア</button>
+      </div>
       <p class="status" id="searchStatus"></p>
       <ul class="result-list" id="resultList"></ul>
       <div class="detail-card" id="resultDetail">
@@ -487,11 +515,33 @@
 
     searchStatusEl.textContent = "検索中…";
 
+    await runSearchRequest({ action: "search", query, userId });
+  }
+
+  async function doSearchByDate() {
+    const date = document.getElementById("searchDate").value.trim();
+    const searchStatusEl = document.getElementById("searchStatus");
+    searchStatusEl.classList.remove("status-success");
+    document.getElementById("resultList").innerHTML = "";
+    document.getElementById("resultDetail").classList.remove("show");
+    document.getElementById("sentBadge").style.display = "none";
+
+    if (!date) {
+      searchStatusEl.textContent = "日付を選択してください";
+      return;
+    }
+
+    searchStatusEl.textContent = "検索中…";
+    await runSearchRequest({ action: "search", date, userId });
+  }
+
+  async function runSearchRequest(payload) {
+    const searchStatusEl = document.getElementById("searchStatus");
     try {
       const res = await fetch(GAS_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "search", query, userId })
+        body: JSON.stringify(payload)
       });
       const data = await res.json().catch(() => ({}));
       const results = Array.isArray(data) ? data : (data.records || []);
@@ -506,39 +556,55 @@
       }
 
       searchStatusEl.textContent = results.length + "件見つかりました";
-      const list = document.getElementById("resultList");
-
-      results.forEach(item => {
-        const li = document.createElement("li");
-        li.className = "result-item";
-        const name = field(item, ["利用者名", "client", "name"]) || "（氏名なし）";
-        const dateStr = field(item, ["サービス日", "訪問日", "visitDate", "日付"]);
-        const meta = dateStr ? '<div class="result-item-meta">' + escapeHtml(dateStr) + "</div>" : "";
-        li.innerHTML = "<div><span>" + escapeHtml(name) + "</span>" + meta + '</div><span class="result-item-arrow">詳細</span>';
-        li.onclick = () => {
-          const client = field(item, ["利用者名", "client", "name"]);
-          const serviceDate = field(item, ["サービス日", "訪問日", "visitDate", "日付"]);
-          const startTime = field(item, ["開始時間", "startTime"]);
-          const endTime = field(item, ["終了時間", "endTime"]);
-          const timeRange = startTime && endTime ? (startTime + "〜" + endTime) : (startTime || endTime);
-          const condition = field(item, ["利用者の状態", "状態", "condition"]);
-          const note = field(item, ["連絡事項", "特記事項", "notes", "備考"]);
-          document.getElementById("d-client").textContent = client;
-          document.getElementById("d-date").textContent = serviceDate;
-          document.getElementById("d-time").textContent = timeRange;
-          document.getElementById("d-services").textContent = condition;
-          document.getElementById("d-notes").textContent = note;
-          document.getElementById("resultDetail").classList.add("show");
-          if (inWoffClient()) {
-            const msg = "【訪問介護記録】\n利用者: " + client + "\nサービス日: " + serviceDate + (timeRange ? "\n時間: " + timeRange : "") + "\n利用者の状態: " + condition + (note ? "\n連絡事項: " + note : "");
-            woff.sendMessage([{ type: "text", text: msg }]);
-            document.getElementById("sentBadge").style.display = "block";
-          }
-        };
-        list.appendChild(li);
-      });
+      renderSearchResults(results);
     } catch (e) {
       searchStatusEl.textContent = "通信エラーが発生しました";
+    }
+  }
+
+  function renderSearchResults(results) {
+    const list = document.getElementById("resultList");
+    list.innerHTML = "";
+    results.forEach(item => {
+      const li = document.createElement("li");
+      li.className = "result-item";
+      const client = field(item, ["利用者名", "client", "name"]) || "（氏名なし）";
+      const helper = field(item, ["ヘルパー名", "helper", "staff", "担当ヘルパー名"]);
+      const serviceDate = field(item, ["サービス日", "訪問日", "visitDate", "日付"]);
+      const startTime = field(item, ["開始時間", "startTime"]);
+      const endTime = field(item, ["終了時間", "endTime"]);
+      const timeRange = startTime && endTime ? (startTime + "〜" + endTime) : (startTime || endTime);
+      const condition = field(item, ["利用者の状態", "状態", "condition"]);
+
+      const meta = serviceDate ? '<div class="result-item-meta">' + escapeHtml(serviceDate) + "</div>" : "";
+      const helperLine = helper ? '<div class="result-item-sub">担当: ' + escapeHtml(helper) + "</div>" : "";
+      const timeLine = timeRange ? '<div class="result-item-sub">時間: ' + escapeHtml(timeRange) + "</div>" : "";
+      const conditionLine = condition ? '<div class="result-item-sub">状態: ' + escapeHtml(condition) + "</div>" : "";
+      li.innerHTML = "<div><span>" + escapeHtml(client) + "</span>" + meta + helperLine + timeLine + conditionLine + '</div><span class="result-item-arrow">詳細</span>';
+
+      li.onclick = () => openSearchDetail(item);
+      list.appendChild(li);
+    });
+  }
+
+  function openSearchDetail(item) {
+    const client = field(item, ["利用者名", "client", "name"]);
+    const serviceDate = field(item, ["サービス日", "訪問日", "visitDate", "日付"]);
+    const startTime = field(item, ["開始時間", "startTime"]);
+    const endTime = field(item, ["終了時間", "endTime"]);
+    const timeRange = startTime && endTime ? (startTime + "〜" + endTime) : (startTime || endTime);
+    const condition = field(item, ["利用者の状態", "状態", "condition"]);
+    const note = field(item, ["連絡事項", "特記事項", "notes", "備考"]);
+    document.getElementById("d-client").textContent = client;
+    document.getElementById("d-date").textContent = serviceDate;
+    document.getElementById("d-time").textContent = timeRange;
+    document.getElementById("d-services").textContent = condition;
+    document.getElementById("d-notes").textContent = note;
+    document.getElementById("resultDetail").classList.add("show");
+    if (inWoffClient()) {
+      const msg = "【訪問介護記録】\n利用者: " + client + "\nサービス日: " + serviceDate + (timeRange ? "\n時間: " + timeRange : "") + "\n利用者の状態: " + condition + (note ? "\n連絡事項: " + note : "");
+      woff.sendMessage([{ type: "text", text: msg }]);
+      document.getElementById("sentBadge").style.display = "block";
     }
   }
 
