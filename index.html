@@ -118,6 +118,10 @@
       margin-top: 10px;
       min-height: 18px;
     }
+    .status.status-success {
+      color: var(--success-text);
+      font-weight: 600;
+    }
     .result-list {
       margin-top: 12px;
       list-style: none;
@@ -143,17 +147,37 @@
       border-radius: 12px;
       margin-top: 12px;
       display: none;
+      flex-direction: column;
       overflow: hidden;
       background: #fff;
     }
-    .detail-card.show { display: block; }
+    .detail-card.show { display: flex; }
     .detail-header {
       background: linear-gradient(135deg, var(--navy-800), var(--navy-900));
       color: #fff;
       font-weight: 700;
       padding: 11px 12px;
       font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-shrink: 0;
     }
+    .detail-header-title { flex: 1; min-width: 0; }
+    .btn-detail-edit {
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--navy-900);
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(11, 31, 59, 0.12);
+    }
+    .btn-detail-edit:active { transform: translateY(1px); }
     .detail-row {
       padding: 11px 12px;
       border-bottom: 1px solid var(--line);
@@ -175,6 +199,52 @@
       font-size: 13px;
       font-weight: 600;
     }
+    .result-item-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .btn-secondary {
+      width: 100%;
+      border: 1px solid var(--navy-700);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--navy-800);
+      background: var(--surface);
+      box-shadow: 0 2px 8px rgba(11, 31, 59, 0.06);
+    }
+    .btn-secondary:active { transform: translateY(1px); }
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .btn-cancel {
+      border-color: var(--line);
+      color: var(--muted);
+      font-weight: 600;
+      background: #f8fafc;
+    }
+    .edit-panel {
+      display: none;
+      border-top: 1px solid var(--line);
+      padding: 12px;
+      background: #f8fafd;
+    }
+    .edit-panel.show { display: block; }
+    .edit-panel .input-group { margin-bottom: 10px; }
+    .edit-panel .input-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .edit-panel .input-group input[type="date"] {
+      min-height: 46px;
+      color-scheme: light;
+    }
+    .edit-status { font-size: 12px; color: var(--muted); margin-top: 8px; min-height: 16px; }
     @media (min-width: 768px) {
       .container { padding: 20px 18px 30px; }
       .panel { padding: 18px; }
@@ -203,9 +273,33 @@
     <p class="status" id="searchStatus"></p>
     <ul class="result-list" id="resultList"></ul>
     <div class="detail-card" id="resultDetail">
-      <div class="detail-header">詳細情報</div>
+      <div class="detail-header">
+        <span class="detail-header-title">詳細情報</span>
+        <button type="button" class="btn-detail-edit" onclick="openEditForm()">修正する</button>
+      </div>
       <div class="detail-row"><span class="detail-label">会社名</span><span class="detail-value" id="d-name"></span></div>
       <div class="detail-row"><span class="detail-label">内容</span><span class="detail-value" id="d-content"></span></div>
+      <div class="detail-row"><span class="detail-label">日付</span><span class="detail-value" id="d-date"></span></div>
+      <div class="edit-panel" id="editPanel">
+        <p class="panel-title" style="margin-bottom:8px;">商談を編集</p>
+        <div class="input-group">
+          <label for="editCompany">会社名</label>
+          <input type="text" id="editCompany" autocomplete="organization">
+        </div>
+        <div class="input-group">
+          <label for="editContent">商談内容</label>
+          <textarea id="editContent" placeholder="商談内容"></textarea>
+        </div>
+        <div class="input-group">
+          <label for="editDate">日付</label>
+          <input type="date" id="editDate">
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn-secondary btn-cancel" onclick="closeEditForm()">キャンセル</button>
+          <button type="button" class="btn" style="margin:0;" onclick="doSaveEdit()">保存する</button>
+        </div>
+        <p class="edit-status" id="editStatus"></p>
+      </div>
     </div>
     <div class="sent-badge" id="sentBadge">チャットに送信しました</div>
   </div>
@@ -231,13 +325,116 @@
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxhVIpeLzG2_8K9v_bGRIDITDp4-f_ZHqGTdnkXm8lKAYn8rajcVbBv7DtI9R_PeuO2/exec";
   const WOFF_ID = "j5bJbWn6Qg1ppttwac1wMA";
   let userId = "";
+  /** @type {{ id: string, 会社名: string, 商談内容: string, 日付: string } | null} */
+  let currentRecord = null;
 
-  const inWoff = typeof woff !== "undefined";
+  /** LINE WORKS クライアント内でのみ true（外部ブラウザでは woff は存在しても init しない） */
+  function inWoffClient() {
+    try {
+      return typeof woff !== "undefined" && typeof woff.isInClient === "function" && woff.isInClient();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function recordIdFromItem(item) {
+    if (!item) return "";
+    if (item.id != null && item.id !== "") return String(item.id);
+    if (item.$id != null) {
+      const v = item.$id;
+      return String(typeof v === "object" && v && v.value != null ? v.value : v);
+    }
+    if (item["レコード番号"] != null) return String(item["レコード番号"]);
+    return "";
+  }
+
+  function toDateInputValue(raw) {
+    if (raw == null || raw === "") return "";
+    const s = String(raw).trim();
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return iso[0];
+    const slash = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+    if (slash) {
+      const y = slash[1];
+      const mo = String(slash[2]).padStart(2, "0");
+      const d = String(slash[3]).padStart(2, "0");
+      return y + "-" + mo + "-" + d;
+    }
+    return "";
+  }
+
+  function openEditForm() {
+    if (!currentRecord) return;
+    if (!currentRecord.id) {
+      document.getElementById("editStatus").textContent = "レコードIDがありません。GASの検索結果に id（kintoneの$id）を含めてください。";
+      document.getElementById("editPanel").classList.add("show");
+      return;
+    }
+    document.getElementById("editStatus").textContent = "";
+    document.getElementById("editCompany").value = currentRecord["会社名"] || "";
+    document.getElementById("editContent").value = currentRecord["商談内容"] || "";
+    document.getElementById("editDate").value = toDateInputValue(currentRecord["日付"]);
+    document.getElementById("editPanel").classList.add("show");
+  }
+
+  function closeEditForm() {
+    document.getElementById("editPanel").classList.remove("show");
+    document.getElementById("editStatus").textContent = "";
+  }
+
+  async function doSaveEdit() {
+    if (!currentRecord || !currentRecord.id) {
+      document.getElementById("editStatus").textContent = "更新できません（レコードIDなし）";
+      return;
+    }
+    const company = document.getElementById("editCompany").value.trim();
+    const content = document.getElementById("editContent").value.trim();
+    const date = document.getElementById("editDate").value.trim();
+    if (!company || !content) {
+      document.getElementById("editStatus").textContent = "会社名と商談内容を入力してください";
+      return;
+    }
+    document.getElementById("editStatus").textContent = "保存中…";
+    const body = JSON.stringify({
+      action: "update",
+      recordId: currentRecord.id,
+      company,
+      content,
+      date
+    });
+    try {
+      const res = await fetch(GAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false || data.error) {
+        document.getElementById("editStatus").textContent = data.error || "保存に失敗しました";
+        return;
+      }
+      currentRecord["会社名"] = company;
+      currentRecord["商談内容"] = content;
+      currentRecord["日付"] = date || currentRecord["日付"];
+      document.getElementById("d-name").textContent = company;
+      document.getElementById("d-content").textContent = content;
+      document.getElementById("d-date").textContent = date || document.getElementById("d-date").textContent;
+      closeEditForm();
+      const okStatus = document.getElementById("searchStatus");
+      okStatus.classList.add("status-success");
+      okStatus.textContent = "✅ 更新完了！";
+      if (inWoffClient()) {
+        woff.sendMessage([{ type: "text", text: "✅ 更新完了！\n【" + company + "】" }]);
+      }
+    } catch (e) {
+      document.getElementById("editStatus").textContent = "通信エラーが発生しました";
+    }
+  }
 
   window.onload = () => {
     const mode = new URLSearchParams(window.location.search).get('mode');
     if (mode === 'add') switchTab('add');
-    if (!inWoff) return;
+    if (!inWoffClient()) return;
     woff.init({ woffId: WOFF_ID })
       .then(() => woff.getProfile())
       .then(profile => { userId = profile.userId; })
@@ -254,9 +451,13 @@
   async function doSearch() {
     const company = document.getElementById("searchInput").value.trim();
     if (!company) return;
-    document.getElementById("searchStatus").textContent = "検索中...";
+    const searchStatusEl = document.getElementById("searchStatus");
+    searchStatusEl.classList.remove("status-success");
+    searchStatusEl.textContent = "検索中...";
     document.getElementById("resultList").innerHTML = "";
     document.getElementById("resultDetail").classList.remove("show");
+    document.getElementById("editPanel").classList.remove("show");
+    currentRecord = null;
     document.getElementById("sentBadge").style.display = "none";
 
     try {
@@ -278,13 +479,25 @@
       results.forEach((item, i) => {
         const li = document.createElement("li");
         li.className = "result-item";
-        li.innerHTML = `<span>${item["会社名"] || "（名称なし）"}</span><span class="result-item-arrow">詳細</span>`;
+        const name = item["会社名"] || "（名称なし）";
+        const dateDisp = item["日付"] ? `<div class="result-item-meta">${String(item["日付"])}</div>` : "";
+        li.innerHTML = `<div><span>${name}</span>${dateDisp}</div><span class="result-item-arrow">詳細</span>`;
         li.onclick = () => {
-          document.getElementById("d-name").textContent = item["会社名"] || "";
-          document.getElementById("d-content").textContent = item["商談内容"] || "";
+          const rid = recordIdFromItem(item);
+          currentRecord = {
+            id: rid,
+            会社名: item["会社名"] || "",
+            商談内容: item["商談内容"] || "",
+            日付: item["日付"] != null ? String(item["日付"]) : ""
+          };
+          document.getElementById("d-name").textContent = currentRecord["会社名"];
+          document.getElementById("d-content").textContent = currentRecord["商談内容"];
+          document.getElementById("d-date").textContent = currentRecord["日付"];
+          document.getElementById("editPanel").classList.remove("show");
+          document.getElementById("editStatus").textContent = "";
           document.getElementById("resultDetail").classList.add("show");
-          if (inWoff && woff.isInClient()) {
-            const msg = `【${item["会社名"]}】\n${item["商談内容"] || ""}`;
+          if (inWoffClient()) {
+            const msg = `【${item["会社名"]}】\n${item["商談内容"] || ""}${currentRecord["日付"] ? "\n日付: " + currentRecord["日付"] : ""}`;
             woff.sendMessage([{ type: "text", text: msg }]);
             document.getElementById("sentBadge").style.display = "block";
           }
@@ -309,7 +522,7 @@
         body: JSON.stringify({ action: "add", company, content, userId })
       });
       document.getElementById("addStatus").textContent = "送信完了";
-      if (inWoff && woff.isInClient()) {
+      if (inWoffClient()) {
         woff.sendMessage([{ type: "text", text: "✅ 商談を登録しました" }]);
         setTimeout(() => woff.closeWindow(), 1500);
       }
