@@ -512,23 +512,25 @@
         const li = document.createElement("li");
         li.className = "result-item";
         const name = field(item, ["利用者名", "client", "name"]) || "（氏名なし）";
-        const dateStr = field(item, ["訪問日", "visitDate", "日付"]);
+        const dateStr = field(item, ["サービス日", "訪問日", "visitDate", "日付"]);
         const meta = dateStr ? '<div class="result-item-meta">' + escapeHtml(dateStr) + "</div>" : "";
         li.innerHTML = "<div><span>" + escapeHtml(name) + "</span>" + meta + '</div><span class="result-item-arrow">詳細</span>';
         li.onclick = () => {
           const client = field(item, ["利用者名", "client", "name"]);
-          const vd = field(item, ["訪問日", "visitDate", "日付"]);
-          const vt = field(item, ["訪問時間", "visitTime", "時間"]);
-          const sv = field(item, ["サービス内容", "services", "内容"]);
-          const nt = field(item, ["特記事項", "notes", "備考"]);
+          const serviceDate = field(item, ["サービス日", "訪問日", "visitDate", "日付"]);
+          const startTime = field(item, ["開始時間", "startTime"]);
+          const endTime = field(item, ["終了時間", "endTime"]);
+          const timeRange = startTime && endTime ? (startTime + "〜" + endTime) : (startTime || endTime);
+          const condition = field(item, ["利用者の状態", "状態", "condition"]);
+          const note = field(item, ["連絡事項", "特記事項", "notes", "備考"]);
           document.getElementById("d-client").textContent = client;
-          document.getElementById("d-date").textContent = vd;
-          document.getElementById("d-time").textContent = vt;
-          document.getElementById("d-services").textContent = sv;
-          document.getElementById("d-notes").textContent = nt;
+          document.getElementById("d-date").textContent = serviceDate;
+          document.getElementById("d-time").textContent = timeRange;
+          document.getElementById("d-services").textContent = condition;
+          document.getElementById("d-notes").textContent = note;
           document.getElementById("resultDetail").classList.add("show");
           if (inWoffClient()) {
-            const msg = "【訪問介護記録】\n利用者: " + client + "\n訪問日: " + vd + (vt ? "\n時間: " + vt : "") + "\n内容: " + sv + (nt ? "\n特記: " + nt : "");
+            const msg = "【訪問介護記録】\n利用者: " + client + "\nサービス日: " + serviceDate + (timeRange ? "\n時間: " + timeRange : "") + "\n利用者の状態: " + condition + (note ? "\n連絡事項: " + note : "");
             woff.sendMessage([{ type: "text", text: msg }]);
             document.getElementById("sentBadge").style.display = "block";
           }
