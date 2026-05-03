@@ -110,6 +110,24 @@
       min-height: 46px;
       color-scheme: light;
     }
+    .radio-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .radio-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #fff;
+      font-size: 14px;
+    }
+    .radio-option input[type="radio"] {
+      accent-color: var(--navy-800);
+    }
     .btn {
       width: 100%;
       border: none;
@@ -221,24 +239,95 @@
         <input type="text" id="addClient" placeholder="例：山田 太郎" autocomplete="name">
       </div>
       <div class="input-group">
-        <label for="addVisitDate">訪問日</label>
-        <input type="date" id="addVisitDate">
+        <label for="addHelper">ヘルパー名</label>
+        <input type="text" id="addHelper" placeholder="例：田中 花子" autocomplete="name">
       </div>
       <div class="input-group">
-        <label for="addVisitTime">訪問時間</label>
-        <input type="text" id="addVisitTime" placeholder="例：10:00〜11:00">
+        <label for="addServiceDate">サービス日</label>
+        <input type="date" id="addServiceDate">
       </div>
       <div class="input-group">
-        <label for="addServices">サービス内容</label>
-        <textarea id="addServices" placeholder="身体介護・生活援助・看護など、実施した内容"></textarea>
+        <label for="addStartTime">開始時間</label>
+        <input type="time" id="addStartTime">
       </div>
       <div class="input-group">
-        <label for="addNotes">特記事項</label>
-        <textarea id="addNotes" placeholder="バイタル・家族連絡・次回注意点など（任意）"></textarea>
+        <label for="addEndTime">終了時間</label>
+        <input type="time" id="addEndTime">
+      </div>
+      <div class="input-group">
+        <label>健康チェック</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="healthCheck" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="healthCheck" value="実施">実施</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>環境整備</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="envSetup" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="envSetup" value="実施">実施</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>助言相談</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="advice" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="advice" value="実施">実施</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>掃除</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="cleaning" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="cleaning" value="実施">実施</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>洗濯</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="washing" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="washing" value="実施">実施</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>調理</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="cooking" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="cooking" value="実施">実施</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>排泄介助</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="toiletAssist" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="toiletAssist" value="実施">実施</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>食事介助</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="mealAssist" value="なし" checked>なし</label>
+          <label class="radio-option"><input type="radio" name="mealAssist" value="実施">実施</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>食事量</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="mealAmount" value="完食" checked>完食</label>
+          <label class="radio-option"><input type="radio" name="mealAmount" value="残量">残量</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="userCondition">利用者の状態</label>
+        <textarea id="userCondition" placeholder="体調・表情・歩行状況など"></textarea>
+      </div>
+      <div class="input-group">
+        <label for="contactNotes">連絡事項</label>
+        <textarea id="contactNotes" placeholder="ご家族・事業所への連絡事項"></textarea>
       </div>
       <button type="button" class="btn" onclick="doAddRecord()">スプレッドシートに保存</button>
       <p class="status" id="addStatus"></p>
-      <p class="hint">GAS 側では <code style="font-size:11px;">action: &quot;kaigo_add&quot;</code> で受け取る想定です。フィールド名はスクリプトと合わせて調整してください。</p>
+      <p class="hint">GAS 側では <code style="font-size:11px;">action: &quot;add&quot;</code> で受け取る想定です。</p>
     </div>
   </div>
 
@@ -295,7 +384,7 @@
   }
 
   window.onload = () => {
-    const dateEl = document.getElementById("addVisitDate");
+    const dateEl = document.getElementById("addServiceDate");
     if (dateEl && !dateEl.value) dateEl.value = todayDateInput();
     if (!inWoffClient()) return;
     woff.init({ woffId: WOFF_ID })
@@ -314,26 +403,48 @@
 
   async function doAddRecord() {
     const client = document.getElementById("addClient").value.trim();
-    const visitDate = document.getElementById("addVisitDate").value.trim();
-    const visitTime = document.getElementById("addVisitTime").value.trim();
-    const services = document.getElementById("addServices").value.trim();
-    const notes = document.getElementById("addNotes").value.trim();
+    const helper = document.getElementById("addHelper").value.trim();
+    const serviceDate = document.getElementById("addServiceDate").value.trim();
+    const startTime = document.getElementById("addStartTime").value.trim();
+    const endTime = document.getElementById("addEndTime").value.trim();
+    const healthCheck = (document.querySelector("input[name='healthCheck']:checked") || {}).value || "なし";
+    const envSetup = (document.querySelector("input[name='envSetup']:checked") || {}).value || "なし";
+    const advice = (document.querySelector("input[name='advice']:checked") || {}).value || "なし";
+    const cleaning = (document.querySelector("input[name='cleaning']:checked") || {}).value || "なし";
+    const washing = (document.querySelector("input[name='washing']:checked") || {}).value || "なし";
+    const cooking = (document.querySelector("input[name='cooking']:checked") || {}).value || "なし";
+    const toiletAssist = (document.querySelector("input[name='toiletAssist']:checked") || {}).value || "なし";
+    const mealAssist = (document.querySelector("input[name='mealAssist']:checked") || {}).value || "なし";
+    const mealAmount = (document.querySelector("input[name='mealAmount']:checked") || {}).value || "完食";
+    const userCondition = document.getElementById("userCondition").value.trim();
+    const contactNotes = document.getElementById("contactNotes").value.trim();
     const statusEl = document.getElementById("addStatus");
     statusEl.classList.remove("status-success");
 
-    if (!client || !visitDate || !services) {
-      statusEl.textContent = "利用者名・訪問日・サービス内容は必須です";
+    if (!client || !helper || !serviceDate || !startTime || !endTime) {
+      statusEl.textContent = "利用者名・ヘルパー名・サービス日・開始/終了時間は必須です";
       return;
     }
 
     statusEl.textContent = "送信中…";
     const body = JSON.stringify({
-      action: "kaigo_add",
+      action: "add",
       利用者名: client,
-      訪問日: visitDate,
-      訪問時間: visitTime,
-      サービス内容: services,
-      特記事項: notes,
+      ヘルパー名: helper,
+      サービス日: serviceDate,
+      開始時間: startTime,
+      終了時間: endTime,
+      健康チェック: healthCheck,
+      環境整備: envSetup,
+      助言相談: advice,
+      掃除: cleaning,
+      洗濯: washing,
+      調理: cooking,
+      排泄介助: toiletAssist,
+      食事介助: mealAssist,
+      食事量: mealAmount,
+      利用者の状態: userCondition,
+      連絡事項: contactNotes,
       userId
     });
 
@@ -353,7 +464,7 @@
       if (inWoffClient()) {
         woff.sendMessage([{
           type: "text",
-          text: "✅ 訪問介護記録を保存しました\n【" + client + "】 " + visitDate + " " + visitTime
+          text: "✅ 訪問介護記録を保存しました\n利用者: " + client + "\nヘルパー: " + helper + "\nサービス日: " + serviceDate + "\n時間: " + startTime + "〜" + endTime
         }]);
       }
     } catch (e) {
