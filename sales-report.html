@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>営業日報入力フォーム</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --accent: #06c755;
+      --accent-dark: #059c44;
+      --danger: #dc2626;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+        "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      margin: 0 0 4px;
+    }
+
+    .description {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .field {
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .required::after {
+      content: " *";
+      color: var(--danger);
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+      font: inherit;
+    }
+
+    input,
+    select,
+    textarea {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+      color: var(--text);
+      min-height: 44px;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .submit-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 13px 14px;
+      min-height: 48px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .submit-btn:active {
+      background: var(--accent-dark);
+    }
+
+    .submit-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      min-height: 1.4em;
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .status.success {
+      color: var(--accent-dark);
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>営業日報入力フォーム</h1>
+      <p class="description">スマホから日報を入力して送信できます。</p>
+
+      <form id="salesReportForm">
+        <div class="field">
+          <label for="reportDate" class="required">日付</label>
+          <input id="reportDate" name="reportDate" type="date" required>
+        </div>
+
+        <div class="field">
+          <label for="personInCharge" class="required">担当者名</label>
+          <input id="personInCharge" name="personInCharge" type="text" placeholder="例: 山田 太郎" required>
+        </div>
+
+        <div class="field">
+          <label for="companyName" class="required">訪問先会社名</label>
+          <input id="companyName" name="companyName" type="text" placeholder="例: 株式会社サンプル" required>
+        </div>
+
+        <div class="field">
+          <label for="dealStatus" class="required">商談ステータス</label>
+          <select id="dealStatus" name="dealStatus" required>
+            <option value="">選択してください</option>
+            <option value="初回接触">初回接触</option>
+            <option value="提案">提案</option>
+            <option value="クロージング">クロージング</option>
+            <option value="受注">受注</option>
+            <option value="失注">失注</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="callCount" class="required">架電数</label>
+            <input id="callCount" name="callCount" type="number" min="0" inputmode="numeric" required>
+          </div>
+          <div class="field">
+            <label for="visitCount" class="required">訪問数</label>
+            <input id="visitCount" name="visitCount" type="number" min="0" inputmode="numeric" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="memo">メモ</label>
+          <textarea id="memo" name="memo" placeholder="補足事項があれば入力"></textarea>
+        </div>
+
+        <button id="submitButton" class="submit-btn" type="submit">送信する</button>
+        <p id="statusMessage" class="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <!-- WOFF SDK (LINE WORKS) -->
+  <script src="https://static.worksmobile.net/woff/woff-sdk-2.0.0.js"></script>
+  <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxpkMimACaJqolW283FI6EwHY5Cglmenu3jcfMzWkRo_caCypPLlP06tihM2y70lEUdAA/exec";
+
+    const form = document.getElementById("salesReportForm");
+    const submitButton = document.getElementById("submitButton");
+    const statusMessage = document.getElementById("statusMessage");
+
+    function setStatus(message, type) {
+      statusMessage.textContent = message;
+      statusMessage.classList.remove("error", "success");
+      if (type) {
+        statusMessage.classList.add(type);
+      }
+    }
+
+    async function initWoff() {
+      if (!window.woff || typeof window.woff.init !== "function") {
+        setStatus("WOFF SDKの読み込みに失敗しました。", "error");
+        return;
+      }
+
+      try {
+        await window.woff.init();
+      } catch (error) {
+        setStatus("WOFF初期化に失敗しました。", "error");
+      }
+    }
+
+    function getFormPayload(formElement) {
+      const formData = new FormData(formElement);
+      return {
+        reportDate: formData.get("reportDate"),
+        personInCharge: formData.get("personInCharge"),
+        companyName: formData.get("companyName"),
+        dealStatus: formData.get("dealStatus"),
+        callCount: Number(formData.get("callCount")),
+        visitCount: Number(formData.get("visitCount")),
+        memo: formData.get("memo") || ""
+      };
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (GAS_URL === "YOUR_GAS_URL") {
+        setStatus("GAS_URLを実際のWebアプリURLに差し替えてください。", "error");
+        return;
+      }
+
+      if (!form.reportValidity()) {
+        return;
+      }
+
+      const payload = getFormPayload(form);
+
+      submitButton.disabled = true;
+      setStatus("送信中です...");
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+
+        setStatus("送信が完了しました。", "success");
+        form.reset();
+      } catch (error) {
+        setStatus("送信に失敗しました。通信状態またはURL設定を確認してください。", "error");
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    initWoff();
+  </script>
+</body>
+</html>
