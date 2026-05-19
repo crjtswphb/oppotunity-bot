@@ -239,11 +239,6 @@
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
 
-      if (GAS_URL === "YOUR_GAS_URL") {
-        setStatus("GAS_URLを実際のWebアプリURLに差し替えてください。", "error");
-        return;
-      }
-
       if (!form.reportValidity()) {
         return;
       }
@@ -254,18 +249,16 @@
       setStatus("送信中です...");
 
       try {
-        const response = await fetch(GAS_URL, {
+        await fetch(GAS_URL, {
           method: "POST",
+          mode: "no-cors",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "text/plain"
           },
           body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-          throw new Error("HTTP " + response.status);
-        }
-
+        // no-corsではレスポンスが読めないため、例外が出なければ成功とみなす
         setStatus("送信が完了しました。", "success");
         form.reset();
       } catch (error) {
