@@ -216,23 +216,28 @@
     }
 
     async function initWoff() {
-      if (!window.woff || typeof window.woff.init !== "function") {
-        setStatus("WOFF SDKの読み込みに失敗しました。", "error");
-        return;
-      }
+  if (!window.woff || typeof window.woff.init !== "function") {
+    setStatus("WOFF SDKの読み込みに失敗しました。", "error");
+    return;
+  }
 
-      try {
-        await window.woff.init();
-        const profile = await window.woff.getProfile();
-        const nameField = document.getElementById("personInCharge");
-        nameField.value = profile.displayName;
-        nameField.readOnly = true;
-      } catch (error) {
-        // ブラウザで開いた場合など、WOFF外では手動入力にフォールバック
-        const nameField = document.getElementById("personInCharge");
-        nameField.placeholder = "例: 山田 太郎";
-      }
-    }
+  try {
+    await window.woff.init();
+    setStatus("init完了", "success");
+
+    const profile = await window.woff.getProfile();
+    setStatus("profile取得完了: " + JSON.stringify(profile), "success");
+
+    const nameField = document.getElementById("personInCharge");
+    nameField.value = profile.displayName;
+    nameField.readOnly = true;
+    setStatus("");
+  } catch (error) {
+    setStatus("エラー: " + String(error), "error");
+    const nameField = document.getElementById("personInCharge");
+    nameField.placeholder = "例: 山田 太郎";
+  }
+}
 
     function getFormPayload(formElement) {
       const formData = new FormData(formElement);
