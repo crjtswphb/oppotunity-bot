@@ -148,6 +148,9 @@
       <h1>営業日報入力フォーム</h1>
       <p class="description">スマホから日報を入力して送信できます。</p>
 
+      <!-- デバッグ用：動作確認後に削除してOK -->
+      <p id="debugInfo" style="font-size:11px; color:gray;">認証中...</p>
+
       <form id="salesReportForm">
         <div class="field">
           <label for="reportDate" class="required">日付</label>
@@ -156,7 +159,7 @@
 
         <div class="field">
           <label for="personInCharge" class="required">担当者名</label>
-          <input id="personInCharge" name="personInCharge" type="text" placeholder="取得中..." required>
+          <input id="personInCharge" name="personInCharge" type="text" placeholder="取得中..." readonly required>
         </div>
 
         <div class="field">
@@ -198,64 +201,64 @@
     </section>
   </main>
 
-  <!-- WOFF SDK (LINE WORKS) -->
   <script src="https://static.worksmobile.net/static/wm/woff/edge/3.6/sdk.js"></script>
   <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxpkMimACaJqolW283FI6EwHY5Cglmenu3jcfMzWkRo_caCypPLlP06tihM2y70lEUdAA/exec";
+    const WOFF_ID = "Q6p0qh-97DhDbhJQ2eNX-g";
 
     const form = document.getElementById("salesReportForm");
     const submitButton = document.getElementById("submitButton");
     const statusMessage = document.getElementById("statusMessage");
+    const debugInfo = document.getElementById("debugInfo");
+    const nameField = document.getElementById("personInCharge");
 
     function setStatus(message, type) {
       statusMessage.textContent = message;
       statusMessage.classList.remove("error", "success");
-      if (type) {
-        statusMessage.classList.add(type);
-      }
+      if (type) statusMessage.classList.add(type);
     }
 
-    async function initWoff() {
-  if (!window.woff || typeof window.woff.init !== "function") {
-    setStatus("WOFF SDKの読み込みに失敗しました。", "error");
-    return;
-  }
+    // woffオブジェクトのロード待ちリトライ処理
+    window.onload = function () {
+      tryInit(0);
+    };
 
-  try {
-    await window.woff.init({ woffId: "Q6p0qh-97DhDbhJQ2eNX-g" });
-    setStatus("init完了", "success");
+    function tryInit(retry) {
+      if (typeof woff === "undefined") {
+        if (retry > 10) {
+          // WOFFが読み込めない場合は手動入力にフォールバック
+          debugInfo.innerText = "手動モード";
+          nameField.removeAttribute("readonly");
+          nameField.placeholder = "例: 山田 太郎";
+          return;
+        }
+        setTimeout(() => tryInit(retry + 1), 500);
+        return;
+      }
 
-    const profile = await window.woff.getProfile();
-    setStatus("profile取得完了: " + JSON.stringify(profile), "success");
-
-    const nameField = document.getElementById("personInCharge");
-    nameField.value = profile.displayName;
-    nameField.readOnly = true;
-    setStatus("");
-  } catch (error) {
-    setStatus("エラー: " + String(error), "error");
-    const nameField = document.getElementById("personInCharge");
-    nameField.placeholder = "例: 山田 太郎";
-  }
-}
-
-  try {
-    await window.woff.init({ woffId: "Q6p0qh-97DhDbhJQ2eNX-g" });
-    setStatus("init完了", "success");
-
-    const profile = await window.woff.getProfile();
-    setStatus("profile取得完了: " + JSON.stringify(profile), "success");
-
-    const nameField = document.getElementById("personInCharge");
-    nameField.value = profile.displayName;
-    nameField.readOnly = true;
-    setStatus("");
-  } catch (error) {
-    setStatus("エラー: " + String(error), "error");
-    const nameField = document.getElementById("personInCharge");
-    nameField.placeholder = "例: 山田 太郎";
-  }
-}
+      woff.init({ woffId: WOFF_ID })
+        .then(() => {
+          // ログイン状態チェック（PCブラウザ対応）
+          if (!woff.isLoggedIn()) {
+            woff.login();
+            return Promise.reject("login");
+          }
+          return woff.getProfile();
+        })
+        .then(profile => {
+          if (profile) {
+            nameField.value = profile.displayName;
+            nameField.setAttribute("readonly", true);
+            debugInfo.innerText = "認証完了: " + profile.displayName;
+          }
+        })
+        .catch(err => {
+          if (err === "login") return;
+          debugInfo.innerText = "手動モード (エラー: " + String(err) + ")";
+          nameField.removeAttribute("readonly");
+          nameField.placeholder = "例: 山田 太郎";
+        });
+    }
 
     function getFormPayload(formElement) {
       const formData = new FormData(formElement);
@@ -273,9 +276,7 @@
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
 
-      if (!form.reportValidity()) {
-        return;
-      }
+      if (!form.reportValidity()) return;
 
       const payload = getFormPayload(form);
 
@@ -286,22 +287,19 @@
         await fetch(GAS_URL, {
           method: "POST",
           mode: "no-cors",
-          headers: {
-            "Content-Type": "text/plain"
-          },
+          headers: { "Content-Type": "text/plain" },
           body: JSON.stringify(payload)
         });
 
         setStatus("送信が完了しました。", "success");
         form.reset();
+        nameField.value = payload.personInCharge; // リセット後も担当者名を保持
       } catch (error) {
         setStatus("送信に失敗しました。通信状態またはURL設定を確認してください。", "error");
       } finally {
         submitButton.disabled = false;
       }
     });
-
-    initWoff();
   </script>
 </body>
 </html>
