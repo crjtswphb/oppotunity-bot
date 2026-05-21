@@ -239,6 +239,24 @@
   }
 }
 
+  try {
+    await window.woff.init({ woffId: "Q6p0qh-97DhDbhJQ2eNX-g" });
+    setStatus("init完了", "success");
+
+    const profile = await window.woff.getProfile();
+    setStatus("profile取得完了: " + JSON.stringify(profile), "success");
+
+    const nameField = document.getElementById("personInCharge");
+    nameField.value = profile.displayName;
+    nameField.readOnly = true;
+    setStatus("");
+  } catch (error) {
+    setStatus("エラー: " + String(error), "error");
+    const nameField = document.getElementById("personInCharge");
+    nameField.placeholder = "例: 山田 太郎";
+  }
+}
+
     function getFormPayload(formElement) {
       const formData = new FormData(formElement);
       return {
